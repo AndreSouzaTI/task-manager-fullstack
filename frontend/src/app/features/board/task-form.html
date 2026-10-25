@@ -1,0 +1,40 @@
+<div class="backdrop" (click)="cancel.emit()"></div>
+<form class="modal" [formGroup]="form" (ngSubmit)="submit()" (keydown.escape)="cancel.emit()" role="dialog" aria-modal="true" novalidate>
+  <h2>{{ task() ? 'Editar tarefa' : 'Nova tarefa' }}</h2>
+
+  <label>
+    Título
+    <input #titleInput type="text" formControlName="title" />
+    @if (form.controls.title.touched && form.controls.title.invalid) {
+      <span class="field-error">Informe um título de até 140 caracteres</span>
+    }
+  </label>
+
+  <label>
+    Descrição
+    <textarea formControlName="description" rows="4"></textarea>
+  </label>
+
+  <div class="row">
+    <label>
+      Prioridade
+      <select formControlName="priority">
+        @for (priority of priorities; track priority[0]) {
+          <option [value]="priority[0]">{{ priority[1] }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
+      Prazo
+      <input type="date" formControlName="dueDate" />
+    </label>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn" (click)="cancel.emit()">Cancelar</button>
+    <button type="submit" class="btn btn--primary" [disabled]="saving()">
+      {{ saving() ? 'Salvando...' : 'Salvar' }}
+    </button>
+  </div>
+</form>

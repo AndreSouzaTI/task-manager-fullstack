@@ -1,0 +1,89 @@
+<header class="topbar">
+  <strong class="brand">Task Manager</strong>
+  <div class="topbar__user">
+    <span>Olá, {{ auth.user()?.name }}</span>
+    <button type="button" class="btn btn--ghost" (click)="auth.logout()">Sair</button>
+  </div>
+</header>
+
+<main class="page">
+  @if (summary(); as s) {
+    <section class="summary" aria-label="Resumo">
+      <div class="summary__card"><span>A fazer</span><strong>{{ s.todo }}</strong></div>
+      <div class="summary__card"><span>Em andamento</span><strong>{{ s.inProgress }}</strong></div>
+      <div class="summary__card"><span>Concluídas</span><strong>{{ s.done }}</strong></div>
+      <div class="summary__card" [class.summary__card--alert]="s.overdue > 0">
+        <span>Atrasadas</span><strong>{{ s.overdue }}</strong>
+      </div>
+    </section>
+  }
+
+  <section class="toolbar">
+    <input
+      type="search"
+      placeholder="Buscar por título"
+      aria-label="Buscar por título"
+      (input)="onSearch($any($event.target).value)"
+    />
+    <select aria-label="Filtrar por prioridade" (change)="onPriorityFilter($any($event.target).value)">
+      <option value="">Todas as prioridades</option>
+      @for (p of priorities; track p[0]) {
+        <option [value]="p[0]">{{ p[1] }}</option>
+      }
+    </select>
+    <button type="button" class="btn btn--primary" (click)="openCreate()">+ Nova tarefa</button>
+  </section>
+
+  @if (error()) {
+    <p class="alert" role="alert">{{ error() }}</p>
+  }
+
+  <section class="board" [class.board--loading]="loading()">
+    @for (status of statuses; track status) {
+      <div
+        class="column"
+        [class.column--drop]="dragging() && dragging()!.status !== status"
+        (dragover)="$event.preventDefault()"
+        (drop)="onDrop(status, $event)"
+      >
+        <h2 class="column__title">
+          {{ statusLabels[status] }} <span class="column__count">{{ columns()[status].length }}</span>
+        </h2>
+
+        @for (task of columns()[status]; track task.id) {
+          <article class="card" draggable="true" (dragstart)="dragging.set(task)" (dragend)="dragging.set(null)">
+            <div class="card__header">
+              <span class="badge badge--{{ task.priority.toLowerCase() }}">{{ priorityLabels[task.priority] }}</span>
+              @if (task.dueDate) {
+                <span class="due" [class.due--late]="task.overdue">
+                  {{ task.overdue ? 'Atrasada · ' : '' }}{{ task.dueDate | date: 'dd/MM/yyyy' }}
+                </span>
+              }
+            </div>
+            <h3 class="card__title">{{ task.title }}</h3>
+            @if (task.description) {
+              <p class="card__description">{{ task.description }}</p>
+            }
+            <div class="card__actions">
+              @if (neighbor(task.status, -1); as previous) {
+                <button type="button" class="icon-btn" [attr.aria-label]="'Mover para ' + statusLabels[previous]" (click)="move(task, previous)">←</button>
+              }
+              @if (neighbor(task.status, 1); as next) {
+                <button type="button" class="icon-btn" [attr.aria-label]="'Mover para ' + statusLabels[next]" (click)="move(task, next)">→</button>
+              }
+              <span class="spacer"></span>
+              <button type="button" class="link-btn" (click)="openEdit(task)">Editar</button>
+              <button type="button" class="link-btn link-btn--danger" (click)="remove(task)">Excluir</button>
+            </div>
+          </article>
+        } @empty {
+          <p class="column__empty">Nenhuma tarefa</p>
+        }
+      </div>
+    }
+  </section>
+</main>
+
+@if (formOpen()) {
+  <app-task-form [task]="editing()" [saving]="saving()" (save)="save($event)" (cancel)="closeForm()" />
+}
